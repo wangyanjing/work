@@ -1,0 +1,223 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<malloc.h>
+#define OVERFLOW -2
+#define OK 1
+#define ERROR 0
+#define n 5
+struct park_Time
+{
+	int hour;
+	int minute;
+};
+struct CarInformation
+{
+	char license_plate_number[7];
+	float charge;
+	park_Time stopping_time;
+	park_Time In;
+	park_Time Out;
+	int length;
+};
+typedef struct QNode
+{
+	CarInformation car;
+	QNode *next;
+}QNode,*QueuePtr;
+typedef struct
+{
+	QueuePtr rear;
+	QueuePtr front;
+}Queue;
+void Init(Queue &Q)
+{
+	Q.front=Q.rear=(QueuePtr)malloc(sizeof(QNode));
+	if(!Q.front) exit(OVERFLOW);
+	Q.rear->next=NULL;
+}
+int Empty(Queue Q)
+{
+	if(Q.front==Q.rear) return OK;
+	else return ERROR;
+}
+void EnQueue(Queue &Q,CarInformation car)
+{
+	QueuePtr q;
+	q=(QueuePtr)malloc(sizeof(QNode));
+	if(!q) exit(OVERFLOW);
+	q->car=car;
+	q->next=NULL;
+	Q.rear->next=q;
+	Q.rear=q;
+	return ;
+}
+void DeQueue(Queue &Q,CarInformation &car)
+{
+	if(Empty(Q)) return ;
+	QueuePtr q=Q.front->next;
+	car=q->car;
+	Q.front->next=q->next;
+	if(Q.rear==q) Q.rear=Q.front;
+	free(q);
+	return ;
+}
+void Q_length(Queue &Q)
+{
+	Q.front->car.length=0;
+	for(QueuePtr q=Q.front->next;q!=NULL;q=q->next)
+	{
+		Q.front->car.length++;
+	}
+}
+int Full(Queue Q)
+{
+	Q_length(Q);
+	if(Q.front->car.length>=n) return OK;
+	return ERROR;
+}
+void Compulational_costs(CarInformation &car)
+{
+	if(car.stopping_time.hour>5)
+	{
+		car.charge=25;
+	}
+	else if(car.stopping_time.hour<1)
+	{
+		car.charge=4;
+	}
+	else
+	{
+		car.charge=4*car.stopping_time.hour;
+		if(car.stopping_time.minute>0)
+		{
+			car.charge+=4;
+		}
+	}
+}
+void scanfroad(Queue &Q)
+{
+	CarInformation car;
+	printf("车牌号为 ");
+	scanf("%s",car.license_plate_number);
+	printf("\n");
+	EnQueue(Q,car);
+}
+void shiftpark(Queue &park,Queue &road)
+{
+	CarInformation car;
+	for(;;)
+	{
+		if(Empty(road)) break;
+		if(Full(park)) break;
+		DeQueue(road,car);
+		printf("进入停车场时间：");
+		scanf("%d",&car.In.hour);
+		printf("时\n");
+		scanf("%d",&car.In.minute);
+		printf("分");
+		printf("\n");
+		EnQueue(park,car);
+	}
+}
+void Transform(park_Time &time,int minutes)
+{
+	time.hour=minutes/60;
+	time.minute=minutes%60;
+}
+void Compulational_stoppingtime(CarInformation &car)
+{
+	int minutes;
+	minutes=(car.Out.hour-car.In.hour)*60+(car.Out.minute-car.In.minute);
+	Transform(car.stopping_time,minutes);
+}
+int scanfpark(Queue &Q)
+{
+	if(!Full(Q))
+	{
+		CarInformation car;
+	    printf("车牌号为 ");
+	    scanf("%s",car.license_plate_number);
+	    printf("\n");
+	    printf("进入停车场时间：");
+	    scanf("%d",&car.In.hour);
+		printf("时\n");
+		scanf("%d",&car.In.minute);
+		printf("分");
+	    printf("\n");
+	    EnQueue(Q,car);
+	}
+	else return	ERROR;
+	return OK;
+}
+
+void scanf_Out_time(CarInformation &car)
+{
+	printf("离开停车场时间：");
+	scanf("%d",&car.Out.hour);
+	printf("时\n");
+	scanf("%d",&car.Out.minute);
+	printf("分");
+	printf("\n");
+}
+void printfcar(CarInformation car)
+{
+	Compulational_stoppingtime(car);//计算停车时间
+	Compulational_costs(car);//计算费用
+	printf("车牌号：");
+	printf("%s\n",car.license_plate_number);
+	printf("应缴费：");
+	printf("%f元\n",car.charge);
+	printf("进入停车场时间 ");
+	printf("%d:%d\n",car.In.hour,car.In.minute);
+	printf("离开停车场时间 ");
+	printf("%d:%d\n",car.Out.hour,car.Out.minute);
+	printf("停车时长 ");
+	printf("%d小时%d分钟\n",car.stopping_time.hour,car.stopping_time.minute);
+}
+int printfpark(Queue &Q)
+{
+	if(Empty(Q)) return ERROR;
+	CarInformation car;
+	DeQueue(Q,car);
+	scanf_Out_time(car);
+	printfcar(car);
+	return OK;
+}
+void Do(Queue &road,Queue &park)
+{
+	int sign;
+	printf("可输入sign值为1 有车开来 2 有车开走 3 结束程序\n");
+	for(;;)
+	{
+		printf("请输入需要进行的操作sign=");
+		scanf("%d",&sign);
+		if(sign==3) break;
+		printf("\n");
+		if(sign==1)
+		{
+			printf("现在停车场外要有车开来\n");
+			if(!scanfpark(park))
+				scanfroad(road);
+		}
+		if(sign==2)
+		{
+			printf("现在停车场内要有车开走\n");
+			if(printfpark(park))
+			{
+				if(!Empty(road))
+					shiftpark(park,road);//车从便道进入停车场
+			}
+			else 
+				printf("停车场内无车辆停放\n");
+		}
+	}
+}
+int main()
+{
+	Queue road,park;
+	Init(road);
+	Init(park);
+	Do(road,park);
+	return 0;
+}
